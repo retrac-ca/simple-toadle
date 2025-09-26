@@ -1,8 +1,9 @@
 // Load environment variables from .env file
 require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 
-// Create a new client instance
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -11,26 +12,30 @@ const client = new Client({
   ],
 });
 
-// Bot is ready and logged in
-client.on('clientReady', () => {
-  console.log(`✅ Logged in as ${client.user.tag}!`);
-});
+// Load commands
+client.commands = new Collection();
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
-// Listen for messages
-client.on('messageCreate', async (message) => {
-  // Ignore messages from bots
-  if (message.author.bot) return;
+for (const file of commandFiles) {
+  const filePath = path.join(commandsPath, file);
+  const command = require(filePath);
+  client.commands.set(command.data.name, command);
+}
 
-  // Simple !ping command
-  if (message.content === '!ping') {
-    await message.reply('Pong! 🐸');
+// Load events
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
+for (const file of eventFiles) {
+  const filePath = path.join(eventsPath, file);
+  const event = require(filePath);
+  if (event.once) {
+    client.once(event.name, (...args) => event.execute(...args));
+  } else {
+    client.on(event.name, (...args) => event.execute(...args));
   }
-});
+}
 
-// Handle errors
-client.on('error', (error) => {
-  console.error('❌ Discord client error:', error);
-});
-
-// Log in to Discord with your bot token
+// Log in to Discord
 client.login(process.env.BOT_TOKEN);
