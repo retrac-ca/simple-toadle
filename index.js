@@ -12,7 +12,7 @@ const client = new Client({
 });
 
 // Bot is ready and logged in
-client.on('ready', () => {
+client.on('clientReady', () => {
   console.log(`✅ Logged in as ${client.user.tag}!`);
 });
 
